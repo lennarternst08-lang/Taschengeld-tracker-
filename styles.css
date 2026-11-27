@@ -237,3 +237,5 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0 6px; }
   font-weight: 800; font-size: .85rem; display: inline-flex; align-items: center; justify-content: center;
   box-shadow: inset 0 0 0 1px #dadce0;
 }
+
+.hint.bad { color: var(--danger); }

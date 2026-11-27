@@ -10,7 +10,8 @@
   var monthFmt = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' });
   var dateFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-  function fmtH(h) { return num.format(h) + ' h'; }
+  function fmtH(h) { return C.fmtHM(h) + ' h'; }
+  var HOUR_FIELDS = { hours: 1, worked: 1, planned: 1 };
   function fmtSigned(n, unit) {
     var s = unit === '€' ? eur.format(Math.abs(n)) : fmtH(Math.abs(n));
     return (n < 0 ? '−' : '+') + s;
@@ -221,7 +222,17 @@
   /* ---------- Sheets ---------- */
 
   function field(form, name) { return form.elements[name]; }
-  function val(form, name) { return C.parseNum(field(form, name).value); }
+  function val(form, name) {
+    var v = field(form, name).value;
+    return HOUR_FIELDS[name] ? C.parseHours(v) : C.parseNum(v);
+  }
+  // Stundenfeld ausgefüllt, aber nicht lesbar?
+  function badHours(form) {
+    return Object.keys(HOUR_FIELDS).some(function (n) {
+      var el = form.elements[n];
+      return el && el.value.trim() !== '' && C.parseHours(el.value) == null;
+    });
+  }
 
   function prefill(dialog) {
     var form = dialog.querySelector('form');
@@ -239,7 +250,7 @@
         break;
       case 'state':
         ['worked', 'planned', 'online', 'cash'].forEach(function (f) {
-          field(form, f).value = inputVal(t[f]);
+          field(form, f).value = HOUR_FIELDS[f] ? (t[f] ? C.fmtHM(t[f]) : '') : inputVal(t[f]);
           field(form, f).placeholder = '0';
         });
         break;
@@ -266,6 +277,13 @@
       } else if (k === 'cashTotal') {
         var c = val(form, 'cash') || 0;
         h.textContent = 'Bar gesamt danach: ' + eur.format(t.cash + c);
+      } else if (k.indexOf('hm:') === 0) {
+        var el = form.elements[k.slice(3)];
+        var raw = el.value.trim();
+        var hv = C.parseHours(raw);
+        h.className = 'hint' + (raw && hv == null ? ' bad' : '');
+        h.textContent = !raw ? 'Stunden:Minuten, z. B. 6:30 oder 6,30'
+          : (hv == null ? 'Ungültig – bitte Std:Min, z. B. 6:30' : '= ' + fmtH(hv));
       } else if (k === 'planned') {
         h.textContent = t.planned > 0 ? '(noch ' + fmtH(t.planned) + ')' : '(keine geplant)';
       }
@@ -285,6 +303,7 @@
   function handleSubmit(form) {
     var list = entries();
     var e;
+    if (badHours(form)) { toast('Stunden bitte als Std:Min, z. B. 6:30'); return false; }
     switch (form.dataset.action) {
       case 'shift': {
         var hours = val(form, 'hours');
@@ -367,7 +386,7 @@
       if (group.dataset.mode === 'add' && v !== 0) {
         input.value = inputVal(C.r2((C.parseNum(input.value) || 0) + v));
       } else {
-        input.value = v ? inputVal(v) : '';
+        input.value = v ? (HOUR_FIELDS[group.dataset.target] ? C.fmtHM(v) : inputVal(v)) : '';
       }
       updateHints(form);
     });
@@ -431,8 +450,8 @@
     if (!s || typeof s !== 'object') return null;
     var key = /^\d{4}-\d{2}$/.test(s.month || '') ? s.month : currentKey;
     var target = {
-      worked: C.parseNum(s.worked != null ? s.worked : s.workedHours),
-      planned: C.parseNum(s.planned != null ? s.planned : s.plannedHours),
+      worked: C.parseHours(s.worked != null ? s.worked : s.workedHours, true),
+      planned: C.parseHours(s.planned != null ? s.planned : s.plannedHours, true),
       online: C.parseNum(s.online != null ? s.online : s.onlineTips),
       cash: C.parseNum(s.cash != null ? s.cash : s.cashTips)
     };

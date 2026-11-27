@@ -17,6 +17,50 @@
     return Math.round((Number(n) || 0) * 100) / 100;
   }
 
+  /* Stunden intern als Dezimalzahl, aber feiner gerundet als Geld,
+     damit z. B. 3 × 0:20 exakt 1:00 ergibt. */
+  function rH(n) {
+    return Math.round((Number(n) || 0) * 1e6) / 1e6;
+  }
+
+  /** Stunden -> "6:30" (Stunden:Minuten) */
+  function fmtHM(h) {
+    var neg = h < 0;
+    var m = Math.round(Math.abs(Number(h) || 0) * 60);
+    return (neg ? '-' : '') + Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
+  }
+
+  /**
+   * "6:30" -> 6.5, "6" -> 6, ":45" -> 0.75, "-1:15" -> -1.25.
+   * Ohne colonOnly gilt auch "," bzw. "." als Trenner für Minuten
+   * ("6,30" = 6:30), weil die iPhone-Zahlentastatur keinen Doppelpunkt hat.
+   * Ungültig (z. B. Minuten >= 60) -> null.
+   */
+  function parseHours(v, colonOnly) {
+    if (typeof v === 'number') return isFinite(v) ? v : null;
+    if (v == null) return null;
+    var s = String(v).trim().replace(/\s|std\.?|h/gi, '');
+    if (s === '') return null;
+    var neg = s.charAt(0) === '-';
+    if (neg) s = s.slice(1);
+    var m = s.match(colonOnly ? /^(\d*):(\d{1,2})$/ : /^(\d*)[:,.](\d{1,2})$/);
+    var h;
+    if (m) {
+      var mins = Number(m[2]);
+      if (mins >= 60) return null;
+      h = Number(m[1] || 0) + mins / 60;
+    } else if (/^\d+$/.test(s)) {
+      h = Number(s);
+    } else if (colonOnly) {
+      h = parseNum(s); // Automatik darf Dezimalzahlen als Text liefern
+      if (h == null) return null;
+    } else {
+      return null;
+    }
+    h = Math.round(h * 60) / 60; // auf ganze Minuten
+    return rH(neg ? -h : h);
+  }
+
   /** "12,50" / "12.5" / " 7 " -> Zahl, sonst null */
   function parseNum(v) {
     if (typeof v === 'number') return isFinite(v) ? v : null;
@@ -34,7 +78,10 @@
         t[f] += Number(e.d && e.d[f]) || 0;
       });
     });
-    FIELDS.forEach(function (f) { t[f] = r2(t[f]); });
+    t.worked = rH(t.worked);
+    t.planned = rH(t.planned);
+    t.online = r2(t.online);
+    t.cash = r2(t.cash);
     return t;
   }
 
@@ -65,7 +112,7 @@
       payNow: r2(payNow),                       // ohne Trinkgeld
       totalNow: r2(payNow + tips),              // mit Trinkgeld
       // Prognose Monatsende
-      totalHours: r2(totalHours),
+      totalHours: rH(totalHours),
       payMonth: r2(payMonth),                   // ohne Trinkgeld
       forecastCurrentTips: r2(payMonth + tips), // mit bisherigem Trinkgeld
       projectedTips: r2(projectedTips),
@@ -84,7 +131,7 @@
     var d = {};
     FIELDS.forEach(function (f) {
       if (target && target[f] != null && isFinite(target[f])) {
-        var diff = r2(target[f] - t[f]);
+        var diff = (f === 'worked' || f === 'planned') ? rH(target[f] - t[f]) : r2(target[f] - t[f]);
         if (diff !== 0) d[f] = diff;
       }
     });
@@ -100,9 +147,9 @@
     var t = totals(entries);
     var d = {};
     var h = Number(shift.hours) || 0;
-    if (h) d.worked = r2(h);
+    if (h) d.worked = rH(h);
     if (shift.fromPlan && h > 0 && t.planned > 0) {
-      d.planned = -r2(Math.min(h, t.planned));
+      d.planned = -rH(Math.min(h, t.planned));
     }
     var c = Number(shift.cash) || 0;
     if (c) d.cash = r2(c);
@@ -120,6 +167,9 @@
   var api = {
     FIELDS: FIELDS,
     r2: r2,
+    rH: rH,
+    fmtHM: fmtHM,
+    parseHours: parseHours,
     parseNum: parseNum,
     totals: totals,
     summary: summary,

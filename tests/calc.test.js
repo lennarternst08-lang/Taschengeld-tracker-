@@ -51,4 +51,23 @@ assert.strictEqual(C.parseNum('abc'), null);
 // Rundung bei vielen kleinen Beträgen
 assert.strictEqual(C.totals([e({ cash: 0.1 }), e({ cash: 0.2 })]).cash, 0.3);
 
+// Stunden:Minuten
+assert.strictEqual(C.parseHours('6:30'), 6.5);
+assert.strictEqual(C.parseHours('6,30'), 6.5);
+assert.strictEqual(C.parseHours('6.45'), 6.75);
+assert.strictEqual(C.parseHours('8'), 8);
+assert.strictEqual(C.parseHours(':20'), C.rH(1 / 3));
+assert.strictEqual(C.parseHours('-1:15'), -1.25);
+assert.strictEqual(C.parseHours('6:75'), null);
+assert.strictEqual(C.parseHours('abc'), null);
+assert.strictEqual(C.parseHours('38.5', true), 38.5); // Automatik: Dezimal als Text
+assert.strictEqual(C.parseHours('38:30', true), 38.5);
+assert.strictEqual(C.fmtHM(38.5), '38:30');
+assert.strictEqual(C.fmtHM(0.75), '0:45');
+assert.strictEqual(C.fmtHM(0), '0:00');
+// 3 × 20 Minuten = genau 1:00
+const thirds = [1, 2, 3].map(() => e({ worked: C.parseHours('0:20') }));
+assert.strictEqual(C.fmtHM(C.totals(thirds).worked), '1:00');
+assert.strictEqual(C.summary(thirds, S).payNow, 14);
+
 console.log('Alle Tests bestanden ✓');

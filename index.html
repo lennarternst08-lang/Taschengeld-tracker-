@@ -116,8 +116,9 @@
 
       <label class="field">
         <span>Stunden</span>
-        <input name="hours" inputmode="decimal" placeholder="z. B. 6,5" autocomplete="off">
+        <input name="hours" inputmode="decimal" placeholder="z. B. 6:30" autocomplete="off">
       </label>
+      <div class="hint" data-hint="hm:hours"></div>
       <div class="chips" data-target="hours" data-mode="set">
         <button type="button" value="4">4 h</button><button type="button" value="5">5 h</button><button type="button" value="6">6 h</button><button type="button" value="7">7 h</button><button type="button" value="8">8 h</button>
       </div>
@@ -180,8 +181,8 @@
       <div class="sheet-head"><h3>Stand eintragen</h3><button type="button" class="x" data-close aria-label="Schließen">✕</button></div>
       <p class="muted tiny">Gesamtwerte für diesen Monat. Nur geänderte Felder werden übernommen.</p>
       <div class="grid2">
-        <label class="field"><span>Gearbeitet (h)</span><input name="worked" inputmode="decimal" autocomplete="off"></label>
-        <label class="field"><span>Geplant noch (h)</span><input name="planned" inputmode="decimal" autocomplete="off"></label>
+        <label class="field"><span>Gearbeitet (Std:Min)</span><input name="worked" inputmode="decimal" autocomplete="off"><div class="hint" data-hint="hm:worked"></div></label>
+        <label class="field"><span>Geplant noch (Std:Min)</span><input name="planned" inputmode="decimal" autocomplete="off"><div class="hint" data-hint="hm:planned"></div></label>
         <label class="field"><span>Online-TG gesamt (€)</span><input name="online" inputmode="decimal" autocomplete="off"></label>
         <label class="field"><span>Bar-TG gesamt (€)</span><input name="cash" inputmode="decimal" autocomplete="off"></label>
       </div>
