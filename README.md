@@ -2,7 +2,24 @@
 
 Schneller, handyoptimierter Tracker für Trinkgeld und den voraussichtlichen
 Auszahlungsbetrag am Monatsende. Reine statische Web-App: kein Server, kein
-Build. Die Daten bleiben lokal im Browser (`localStorage`).
+Build. Mit **Google-Anmeldung** werden die Daten über Firebase/Firestore
+zwischen Handy und PC synchronisiert; ohne Anmeldung bleiben sie lokal im Browser.
+
+## Google-Sync (Firebase)
+
+- Nutzt **dasselbe Firebase-Projekt wie FLIPBIKE** (`firebase-config.js`).
+  `lennarternst08-lang.github.io` ist dort schon als Login-Domain freigegeben.
+- Daten pro Google-Konto in Firestore:
+  `tipTracker/{uid}` (Einstellungen) und `tipTracker/{uid}/months/{YYYY-MM}` (Einträge).
+- Neue Einträge werden per `arrayUnion` angehängt, Löschungen per `arrayRemove`, also
+  überschreiben sich Handy und PC nicht gegenseitig. Offline-Änderungen werden später hochgeladen.
+- Was vor der Anmeldung lokal eingetragen wurde, wird beim ersten Login ins Konto übernommen.
+- **Einmalig nötig:** Die Regel für `tipTracker` liegt in `firestore.rules` im
+  FLIPBIKE-Repo und muss veröffentlicht werden (`firebase deploy --only firestore:rules`
+  im FLIPBIKE-Ordner oder in der Firebase-Konsole → Firestore → Regeln einfügen).
+  Solange das fehlt, zeigt die App „Keine Berechtigung …“.
+- Lokal testen mit Emulator: `firebase emulators:start --only auth,firestore`, dann
+  `http://localhost:8000/?emulator` öffnen.
 
 ## Was angezeigt wird
 
@@ -32,8 +49,11 @@ Nach jedem Speichern kann man über den Toast „Rückgängig“ klicken.
 
 - Lokal: `index.html` im Browser öffnen, oder `python3 -m http.server` im Ordner
   starten und `http://localhost:8000` aufrufen.
-- Handy: z. B. über GitHub Pages veröffentlichen (Settings → Pages → Branch
-  wählen) und im Browser „Zum Home-Bildschirm hinzufügen“.
+- Handy: über GitHub Pages veröffentlichen (Settings → Pages → „Deploy from a
+  branch“ → `main` / `root`). Dann ist die App unter
+  `https://lennarternst08-lang.github.io/Taschengeld-tracker-/` erreichbar. Im Browser
+  „Zum Home-Bildschirm hinzufügen“.
+- Google-Login funktioniert nur über `http(s)://`, nicht wenn `index.html` als Datei geöffnet wird.
 
 ## Datenmodell & spätere Automatisierung
 
@@ -49,7 +69,8 @@ Jeder Monat ist eine Liste von Einträgen mit **Deltas**; der Stand ist die Summ
 ```
 
 Für die Automatisierung muss ein lokales Skript nur einen **Snapshot** (Gesamtstand)
-liefern. Die App erzeugt daraus selbst den passenden Korrektur-Eintrag:
+liefern (alternativ kann es mit Firebase direkt einen Eintrag per `arrayUnion` in
+`tipTracker/{uid}/months/{YYYY-MM}` schreiben). Die App erzeugt daraus selbst den passenden Korrektur-Eintrag:
 
 ```json
 { "month": "2026-11", "worked": 38.5, "planned": 18, "online": 70 }

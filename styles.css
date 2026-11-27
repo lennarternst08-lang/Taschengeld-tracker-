@@ -200,3 +200,40 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0 6px; }
   .big { font-size: 2.2rem; }
   .tile .mid { font-size: 1rem; }
 }
+
+/* Konto / Sync */
+.acct { position: relative; font-size: 1.1rem; }
+.acct .acct-ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%; font-size: 1rem; font-weight: 700;
+}
+.acct[data-state="in"] .acct-ico { background: var(--brand); color: #fff; font-size: .9rem; }
+@media (prefers-color-scheme: dark) { .acct[data-state="in"] .acct-ico { color: #062b27; } }
+.acct .dot {
+  position: absolute; right: 6px; bottom: 6px; width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid var(--bg); background: var(--muted); display: none;
+}
+.acct[data-sync="ok"] .dot { display: block; background: #16a34a; }
+.acct[data-sync="pending"] .dot { display: block; background: #f59e0b; }
+.acct[data-state="error"] .dot { display: block; background: var(--danger); }
+.acct[data-state="out"] .acct-ico, .acct[data-state="unavailable"] .acct-ico, .acct[data-state="loading"] .acct-ico { opacity: .55; }
+
+.account {
+  display: flex; align-items: center; gap: 12px; padding: 12px; margin-top: 4px;
+  background: var(--bg); border-radius: 14px;
+}
+.account .acc-info { flex: 1; min-width: 0; }
+.account .acc-title { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account .btn { min-height: 42px; flex: none; }
+.account[data-state="error"] { outline: 1.5px solid var(--danger); }
+.account[data-state="error"] .acc-sub, .account[data-state="error"] #accSub { color: var(--danger); }
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-row .btn { flex: 1 1 160px; }
+.btn.google { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.google[hidden] { display: none; }
+.btn.google .g {
+  width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #4285f4;
+  font-weight: 800; font-size: .85rem; display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 0 0 1px #dadce0;
+}

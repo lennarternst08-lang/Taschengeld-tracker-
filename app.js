@@ -39,6 +39,9 @@
 
   var store = load();
   var storageOk = true;
+  // Wird von sync.js gesetzt, sobald man mit Google angemeldet ist.
+  var remote = null;
+  var authApi = null;
 
   function save() {
     try {
@@ -77,14 +80,20 @@
     };
     store.months[key].entries.push(e);
     save();
+    if (remote) remote.add(key, e);
     return e;
   }
 
   function removeEntry(id) {
     var m = store.months[currentKey];
     if (!m) return;
-    m.entries = m.entries.filter(function (e) { return e.id !== id; });
+    var removed = null;
+    m.entries = m.entries.filter(function (e) {
+      if (e.id === id) { removed = e; return false; }
+      return true;
+    });
     save();
+    if (remote && removed) remote.remove(currentKey, removed);
   }
 
   /* ---------- Anzeige ---------- */
@@ -320,6 +329,7 @@
         store.settings.wage = C.r2(w);
         store.settings.deductionPct = Math.min(100, Math.max(0, C.r2(p || 0)));
         save();
+        if (remote) remote.saveSettings(store.settings);
         toast('Einstellungen gespeichert');
         break;
       }
@@ -403,9 +413,12 @@
   function importData(data) {
     if (data && data.months && typeof data.months === 'object') {
       if (!confirm('Alle aktuellen Daten durch den Import ersetzen?')) return 'Import abgebrochen';
+      var owner = store.owner || null;
       store = Object.assign(defaultStore(), data);
       store.settings = Object.assign(defaultStore().settings, data.settings || {});
+      store.owner = owner;
       save();
+      if (remote) remote.replaceAll(store);
       return 'Daten importiert';
     }
     var snaps = Array.isArray(data) ? data : [data];
@@ -432,17 +445,112 @@
   window.TGTracker = {
     applySnapshot: function (s) { var e = applySnapshot(s); render(); return !!e; },
     summary: function (key) { return C.summary(entries(key), store.settings); },
-    exportData: function () { return JSON.parse(JSON.stringify(store)); }
+    exportData: function () { return JSON.parse(JSON.stringify(store)); },
+
+    /* --- Schnittstelle für sync.js (Google/Firebase) --- */
+    getLocal: function () { return store; },
+    setRemote: function (r) { remote = r; },
+    setAuthApi: function (a) { authApi = a; },
+    // Cloud-Stand übernehmen (Spiegel des Kontos `owner`)
+    setFromCloud: function (data, owner) {
+      store.settings = Object.assign(defaultStore().settings, data.settings || {});
+      store.months = data.months || {};
+      store.owner = owner;
+      save();
+      render();
+    },
+    // Nach dem Abmelden: lokale Kopie leeren (Daten liegen im Konto)
+    clearLocal: function () {
+      store = defaultStore();
+      save();
+      render();
+    },
+    setAccount: setAccount,
+    toast: toast
   };
 
   $('resetMonth').addEventListener('click', function () {
     if (!confirm('Alle Einträge für ' + $('monthLabel').textContent + ' löschen?')) return;
     delete store.months[currentKey];
     save();
+    if (remote) remote.resetMonth(currentKey);
     $('sheetSettings').close();
     render();
     toast('Monat geleert');
   });
 
+  /* ---------- Konto-Anzeige ---------- */
+
+  var account = { state: 'loading' };
+
+  function setAccount(a) {
+    account = Object.assign({}, a);
+    var st = account.state;
+    var btn = $('accountBtn');
+    btn.dataset.state = st;
+    btn.dataset.sync = st === 'in' ? (account.pending ? 'pending' : 'ok') : '';
+    var initial = account.name || account.email || '';
+    $('accountIco').textContent = st === 'in' && initial ? initial.trim().charAt(0).toUpperCase() : '☁';
+
+    var title, sub, foot;
+    switch (st) {
+      case 'in':
+        title = account.email || account.name || 'Angemeldet';
+        sub = account.pending ? 'Änderungen werden hochgeladen …' : (account.offline ? 'Offline – wird später synchronisiert' : 'Synchronisiert ✓');
+        foot = '☁ Gespeichert im Google-Konto ' + (account.email || '') + (account.pending ? ' · lädt hoch …' : '');
+        break;
+      case 'out':
+        title = 'Nicht angemeldet';
+        sub = 'Mit Google anmelden, um Handy & PC zu synchronisieren.';
+        foot = 'Nur auf diesem Gerät gespeichert. Mit Google anmelden (☁ oben) für Sync.';
+        break;
+      case 'error':
+        title = account.email || 'Sync-Fehler';
+        sub = account.message || 'Synchronisierung fehlgeschlagen.';
+        foot = '⚠ ' + sub;
+        break;
+      case 'unavailable':
+        title = 'Sync nicht verfügbar';
+        sub = account.message || 'Offline oder Seite lokal als Datei geöffnet.';
+        foot = 'Nur auf diesem Gerät gespeichert (' + sub + ')';
+        break;
+      default:
+        title = 'Verbinde …';
+        sub = '';
+        foot = 'Daten bleiben lokal auf diesem Gerät gespeichert.';
+    }
+    $('accTitle').textContent = title;
+    $('accSub').textContent = sub;
+    $('accountBox').dataset.state = st;
+    $('footNote').textContent = foot;
+    $('logoutBtn').hidden = !(st === 'in' || (st === 'error' && account.signedIn));
+    document.querySelectorAll('[data-login]').forEach(function (b) {
+      b.hidden = !(st === 'out') || !authApi;
+    });
+  }
+
+  document.querySelectorAll('[data-login]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (!authApi) return;
+      b.disabled = true;
+      authApi.login().catch(function (err) {
+        toast(err && err.userMessage ? err.userMessage : 'Anmeldung fehlgeschlagen');
+      }).then(function () { b.disabled = false; });
+    });
+  });
+  $('logoutBtn').addEventListener('click', function () {
+    if (!authApi) return;
+    if (!confirm('Abmelden? Deine Daten bleiben im Google-Konto gespeichert und werden von diesem Gerät entfernt.')) return;
+    authApi.logout().then(function () { $('sheetSettings').close(); toast('Abgemeldet'); });
+  });
+  $('accountBtn').addEventListener('click', function () { openSheet('sheetSettings'); });
+
+  // Lädt sync.js nicht (z. B. file:// oder offline beim ersten Start), bleibt es lokal.
+  setTimeout(function () {
+    if (account.state === 'loading' && !authApi) setAccount({ state: 'unavailable' });
+  }, 8000);
+
+  if (location.protocol === 'file:') account = { state: 'unavailable', message: 'Seite lokal als Datei geöffnet' };
+  setAccount(account);
   render();
 })();

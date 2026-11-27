@@ -21,6 +21,9 @@
       <div class="month-sub" id="monthSub"></div>
     </div>
     <button class="icon-btn" id="nextMonth" aria-label="Nächster Monat">›</button>
+    <button class="icon-btn acct" id="accountBtn" data-state="loading" aria-label="Google-Konto">
+      <span class="acct-ico" id="accountIco">☁</span><span class="dot" aria-hidden="true"></span>
+    </button>
     <button class="icon-btn gear" id="openSettings" aria-label="Einstellungen">⚙</button>
   </header>
 
@@ -29,7 +32,10 @@
     <section class="card onboarding" id="onboarding" hidden>
       <h2>Los geht's</h2>
       <p>Trag einmal deinen aktuellen Stand ein: gearbeitete Stunden, geplante Stunden und dein Trinkgeld. Danach reicht nach jeder Schicht ein Klick auf <b>Schicht</b>.</p>
-      <button class="btn primary" data-open="sheetState">Stand eintragen</button>
+      <div class="btn-row">
+        <button class="btn primary" data-open="sheetState">Stand eintragen</button>
+        <button class="btn google" data-login hidden><span class="g">G</span> Mit Google anmelden</button>
+      </div>
     </section>
 
     <!-- Aktuell -->
@@ -92,7 +98,7 @@
       <p class="muted tiny" id="logEmpty">Noch keine Einträge in diesem Monat.</p>
     </section>
 
-    <p class="foot muted tiny">Daten bleiben lokal auf diesem Gerät gespeichert. Sicherung über ⚙ → Export.</p>
+    <p class="foot muted tiny" id="footNote">Daten bleiben lokal auf diesem Gerät gespeichert.</p>
   </main>
 
   <!-- Schnellaktionen -->
@@ -187,6 +193,14 @@
   <dialog class="sheet" id="sheetSettings">
     <form method="dialog" data-action="settings">
       <div class="sheet-head"><h3>Einstellungen</h3><button type="button" class="x" data-close aria-label="Schließen">✕</button></div>
+      <div class="account" id="accountBox">
+        <div class="acc-info">
+          <div class="acc-title" id="accTitle">Verbinde …</div>
+          <div class="tiny muted" id="accSub"></div>
+        </div>
+        <button type="button" class="btn google" data-login hidden><span class="g">G</span> Anmelden</button>
+        <button type="button" class="btn" id="logoutBtn" hidden>Abmelden</button>
+      </div>
       <div class="grid2">
         <label class="field"><span>Stundenlohn (€)</span><input name="wage" inputmode="decimal" autocomplete="off"></label>
         <label class="field"><span>Abzüge vom Lohn (%)</span><input name="deductionPct" inputmode="decimal" autocomplete="off"></label>
@@ -207,5 +221,6 @@
 
   <script src="calc.js"></script>
   <script src="app.js"></script>
+  <script type="module" src="sync.js"></script>
 </body>
 </html>
