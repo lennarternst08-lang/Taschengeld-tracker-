@@ -2,7 +2,11 @@
   'use strict';
 
   var C = window.TGCalc;
-  if (!C || !C.parseHours) { location.reload(); return; }
+  if (!C || !C.parseHours) {
+    try {
+      if (!sessionStorage.getItem('tg-reloaded')) { sessionStorage.setItem('tg-reloaded', '1'); location.reload(); return; }
+    } catch (e) { /* ignorieren */ }
+  }
   var STORE_KEY = 'tg-tracker-v1';
   var LOG_PREVIEW = 6;
 
