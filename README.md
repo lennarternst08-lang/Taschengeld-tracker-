@@ -87,3 +87,9 @@ Die Rechenlogik steckt in `calc.js` und läuft auch in Node
 ```bash
 node tests/calc.test.js
 ```
+
+## Update veröffentlichen
+
+Nach Änderungen die Versionsnummer `?v=…` in `index.html` (und in `sync.js` beim
+Import von `firebase-config.js`) erhöhen, damit Handys nicht alte Dateien aus dem
+Cache mischen.

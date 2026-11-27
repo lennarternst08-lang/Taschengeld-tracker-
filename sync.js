@@ -9,7 +9,7 @@
  * dadurch überschreiben sich Handy und PC nicht gegenseitig. Offline-Änderungen
  * werden von Firestore zwischengespeichert und später hochgeladen.
  */
-import { firebaseConfig, firestoreDatabaseId } from './firebase-config.js';
+import { firebaseConfig, firestoreDatabaseId } from './firebase-config.js?v=202611271047';
 
 const V = '12.6.0';
 const CDN = `https://www.gstatic.com/firebasejs/${V}`;

@@ -2,6 +2,7 @@
   'use strict';
 
   var C = window.TGCalc;
+  if (!C || !C.parseHours) { location.reload(); return; }
   var STORE_KEY = 'tg-tracker-v1';
   var LOG_PREVIEW = 6;
 
